@@ -3,12 +3,13 @@ import { db, type Item, type Vistoria } from './db'
 import { blobParaDataURL } from './fotos'
 import { resumo } from './resumo'
 
-const AZUL: [number, number, number] = [31, 78, 121]
+const GRAFITE: [number, number, number] = [39, 43, 43]
+const COBRE: [number, number, number] = [142, 97, 66]
 const COR = {
-  ok: [46, 125, 50],
-  nc: [198, 40, 40],
-  na: [117, 117, 117],
-  pendente: [230, 145, 0]
+  ok: [74, 124, 89],
+  nc: [178, 58, 46],
+  na: [138, 129, 120],
+  pendente: [192, 138, 46]
 } as const
 const ROTULO = { ok: 'CONFORME', nc: 'NÃO CONFORME', na: 'N/A', pendente: 'A CONFERIR' }
 
@@ -33,7 +34,8 @@ export async function gerarRelatorio(v: Vistoria) {
   }
 
   // Cabeçalho
-  doc.setFillColor(...AZUL).rect(0, 0, 210, 28, 'F')
+  doc.setFillColor(...GRAFITE).rect(0, 0, 210, 28, 'F')
+  doc.setFillColor(...COBRE).rect(0, 28, 210, 1.5, 'F')
   doc.setTextColor(255).setFont('helvetica', 'bold').setFontSize(16).text('Relatório de Vistoria', L, 12)
   doc.setFont('helvetica', 'normal').setFontSize(10).text(v.titulo, L, 20)
   doc.text(new Date(v.data).toLocaleString('pt-BR'), 195, 20, { align: 'right' })
@@ -73,8 +75,8 @@ export async function gerarRelatorio(v: Vistoria) {
   const secoes = [...new Set(v.itens.map(i => i.secao))]
   for (const s of secoes) {
     espaco(16)
-    doc.setFillColor(232, 238, 244).rect(L, y, W, 8, 'F')
-    doc.setTextColor(...AZUL).setFont('helvetica', 'bold').setFontSize(11).text(s, L + 2, y + 5.5)
+    doc.setFillColor(231, 223, 215).rect(L, y, W, 8, 'F')
+    doc.setTextColor(...COBRE).setFont('helvetica', 'bold').setFontSize(11).text(s, L + 2, y + 5.5)
     doc.setTextColor(0)
     y += 11
     for (const it of v.itens.filter(i => i.secao === s)) await desenharItem(it)
@@ -110,7 +112,7 @@ export async function gerarRelatorio(v: Vistoria) {
       doc.addImage(url, 'JPEG', L + 4 + col * (fw + 4) + (fw - w) / 2, y + (fh - h) / 2, w, h)
       if (col === 2 || i === it.fotos.length - 1) y += fh + 3
     }
-    doc.setDrawColor(225).setLineWidth(0.2).line(L, y, L + W, y)
+    doc.setDrawColor(221, 212, 201).setLineWidth(0.2).line(L, y, L + W, y)
     y += 3
   }
 

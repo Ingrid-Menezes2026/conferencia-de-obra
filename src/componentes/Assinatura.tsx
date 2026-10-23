@@ -13,7 +13,7 @@ export default function Assinatura({ onSalvar, onCancelar }: { onSalvar: (dataUR
     ctx.scale(devicePixelRatio, devicePixelRatio)
     ctx.lineWidth = 2.2
     ctx.lineCap = 'round'
-    ctx.strokeStyle = '#102a43'
+    ctx.strokeStyle = '#272b2b'
     let ativo = false
     const pos = (e: PointerEvent) => { const b = c.getBoundingClientRect(); return [e.clientX - b.left, e.clientY - b.top] }
     const down = (e: PointerEvent) => { ativo = true; c.setPointerCapture(e.pointerId); const [x, y] = pos(e); ctx.beginPath(); ctx.moveTo(x, y) }

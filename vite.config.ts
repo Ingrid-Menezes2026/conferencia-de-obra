@@ -17,8 +17,8 @@ export default defineConfig({
         short_name: 'Conferência',
         description: 'Vistoria e conferência de obras em campo',
         lang: 'pt-BR',
-        theme_color: '#1f4e79',
-        background_color: '#f4f6f8',
+        theme_color: '#272b2b',
+        background_color: '#f4f2ed',
         display: 'standalone',
         start_url: '.',
         icons: [
