@@ -1,3 +1,4 @@
+import { CircleCheck, Plus, TriangleAlert } from 'lucide-react'
 import { useState } from 'react'
 import { db, novoId, type Obra, type Pendencia } from '../db'
 import { dataHora, usuarioAtual } from '../usuario'
@@ -19,13 +20,13 @@ export default function ListaPendencias({ pendencias, obraId, obras }: {
   return (
     <>
       <div className="acoes esquerda">
-        {obraId && <button onClick={() => setNova(true)}>+ Nova pendência</button>}
+        {obraId && <button onClick={() => setNova(true)}><Plus size={17} />Nova pendência</button>}
         <label className="check">
           <input type="checkbox" checked={verResolvidas} onChange={e => setVerResolvidas(e.target.checked)} /> Mostrar resolvidas
         </label>
       </div>
       {nova && obraId && <FormPendencia obraId={obraId} onFechar={() => setNova(false)} />}
-      {lista.length === 0 && <p className="vazio">Nenhuma pendência em aberto.</p>}
+      {lista.length === 0 && <div className="vazio"><CircleCheck size={30} /><p>Nenhuma pendência em aberto.</p></div>}
       <ul className="lista">
         {lista.map(p => (
           <li key={p.id} className={`cartao pend ${p.status} ${atrasada(p) ? 'atrasada' : ''}`}>
@@ -43,15 +44,15 @@ export default function ListaPendencias({ pendencias, obraId, obras }: {
                   {obras && <>{obras.find(o => o.id === p.obraId)?.nome} · </>}
                   {p.responsavel || 'Sem responsável'}
                   {p.prazo && <> · prazo {new Date(p.prazo + 'T12:00').toLocaleDateString('pt-BR')}</>}
-                  {atrasada(p) && <b> · atrasada</b>}
                 </span>
+                {atrasada(p) && <span className="selo nc" style={{ marginTop: '.35rem' }}><TriangleAlert size={12} />Atrasada</span>}
                 <span className="sub">
                   Registrada por {p.criadaPor || '—'} em {dataHora(p.criadaEm)}
                   {p.resolvidaEm && <> · resolvida por {p.resolvidaPor} em {dataHora(p.resolvidaEm)}</>}
                 </span>
               </span>
             </label>
-            {p.vistoriaId && <a href={`#/vistoria/${p.vistoriaId}`} className="sub">ver vistoria</a>}
+            {p.vistoriaId && <a href={`#/vistoria/${p.vistoriaId}`} className="sub" style={{ whiteSpace: 'nowrap' }}>Ver vistoria</a>}
           </li>
         ))}
       </ul>

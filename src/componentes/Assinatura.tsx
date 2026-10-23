@@ -33,7 +33,8 @@ export default function Assinatura({ onSalvar, onCancelar }: { onSalvar: (dataUR
 
   return (
     <div className="painel">
-      <h3>Assinatura do responsável</h3>
+      <div className="painel-titulo"><h3>Assinatura do responsável</h3></div>
+      <p className="sub" style={{ marginBottom: '.6rem' }}>Assine com o dedo no espaço abaixo. Depois de finalizada, a vistoria é arquivada e não pode mais ser alterada.</p>
       <canvas ref={ref} className="assinatura" />
       <div className="acoes">
         <button type="button" onClick={onCancelar}>Cancelar</button>

@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db'
-import { resumo } from '../resumo'
-import { dataHora } from '../usuario'
+import { Archive } from 'lucide-react'
+import { CartaoVistoria } from './ObraTela'
 
 // Todas as vistorias finalizadas, da mais recente para a mais antiga
 export default function Arquivo() {
@@ -16,36 +16,24 @@ export default function Arquivo() {
     .sort((a, b) => (b.finalizadaEm ?? b.data) - (a.finalizadaEm ?? a.data))
 
   return (
-    <>
-      <h1>Arquivo de vistorias</h1>
-      <p className="sub">Vistorias finalizadas ficam guardadas aqui e não podem mais ser alteradas.</p>
+    <div className="estreito">
+      <div className="cabecalho">
+        <div>
+          <p className="eyebrow">Histórico</p>
+          <h1>Arquivo de vistorias</h1>
+          <p className="sub">Vistorias finalizadas ficam guardadas aqui, com data, horário e responsável, e não podem mais ser alteradas.</p>
+        </div>
+      </div>
       <label>Obra
         <select value={obraId} onChange={e => setObraId(e.target.value)}>
           <option value="">Todas as obras</option>
           {obras.map(o => <option key={o.id} value={o.id}>{o.nome}</option>)}
         </select>
       </label>
-      {lista.length === 0 && <p className="vazio">Nenhuma vistoria arquivada ainda.</p>}
+      {lista.length === 0 && <div className="vazio"><Archive size={32} /><p>Nenhuma vistoria arquivada ainda.</p></div>}
       <ul className="lista">
-        {lista.map(v => {
-          const r = resumo(v.itens)
-          return (
-            <li key={v.id}>
-              <a href={`#/vistoria/${v.id}`} className="cartao">
-                <strong>{v.titulo}</strong>
-                <span className="sub">{obras.find(o => o.id === v.obraId)?.nome}</span>
-                <span className="sub">Iniciada em {dataHora(v.data)} por {v.criadaPor || v.vistoriador || '—'}</span>
-                <span className="sub">Finalizada em {v.finalizadaEm ? dataHora(v.finalizadaEm) : '—'} por {v.finalizadaPor || '—'}</span>
-                <span className="barra-resumo">
-                  <span className="selo ok">{r.ok} ok</span>
-                  <span className="selo nc">{r.nc} não conf.</span>
-                  <span className="selo">{r.na} N/A</span>
-                </span>
-              </a>
-            </li>
-          )
-        })}
+        {lista.map(v => <CartaoVistoria key={v.id} v={v} obraNome={obras.find(o => o.id === v.obraId)?.nome} />)}
       </ul>
-    </>
+    </div>
   )
 }

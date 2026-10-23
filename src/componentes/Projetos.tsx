@@ -1,3 +1,4 @@
+import { Layers, Trash2, Upload } from 'lucide-react'
 import { lazy, Suspense, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, DISCIPLINAS, novoId, type Projeto } from '../db'
@@ -21,11 +22,11 @@ export default function Projetos({ obraId, editavel = true }: { obraId: string; 
     <>
       {editavel && (
         <div className="acoes esquerda">
-          <button onClick={() => setEnviando(true)}>+ Adicionar projeto</button>
+          <button onClick={() => setEnviando(true)}><Upload size={17} />Enviar projeto</button>
         </div>
       )}
       {enviando && <FormProjeto obraId={obraId} onFechar={() => setEnviando(false)} />}
-      {projetos.length === 0 && !enviando && <p className="vazio">Nenhum projeto cadastrado nesta obra.</p>}
+      {projetos.length === 0 && !enviando && <div className="vazio"><Layers size={30} /><p>Nenhum projeto cadastrado. Envie as pranchas em PDF ou DWG para consultar durante as vistorias.</p></div>}
       {porDisciplina.map(([d, lista]) => (
         <div key={d}>
           <h4 className="disciplina">{d}</h4>
@@ -41,7 +42,7 @@ export default function Projetos({ obraId, editavel = true }: { obraId: string; 
                   </span>
                 </button>
                 {editavel && (
-                  <button className="link perigo" onClick={() => confirm(`Excluir o projeto "${p.nome}"?`) && db.projetos.delete(p.id)}>Excluir</button>
+                  <button className="link perigo" title="Excluir projeto" onClick={() => confirm(`Excluir o projeto "${p.nome}"?`) && db.projetos.delete(p.id)}><Trash2 size={17} /></button>
                 )}
               </li>
             ))}
@@ -89,6 +90,7 @@ function FormProjeto({ obraId, onFechar }: { obraId: string; onFechar: () => voi
 
   return (
     <form className="painel" onSubmit={salvar}>
+      <div className="painel-titulo"><h3>Enviar projeto</h3></div>
       <label>Arquivo (PDF ou DWG)
         <input type="file" accept=".pdf,.dwg,application/pdf" onChange={e => escolher(e.target.files?.[0])} />
       </label>
