@@ -2,6 +2,7 @@ import { jsPDF } from 'jspdf'
 import { db, type Item, type Vistoria } from './db'
 import { blobParaDataURL } from './fotos'
 import { resumo } from './resumo'
+import { dataHora } from './usuario'
 
 const GRAFITE: [number, number, number] = [39, 43, 43]
 const COBRE: [number, number, number] = [142, 97, 66]
@@ -48,7 +49,9 @@ export async function gerarRelatorio(v: Vistoria) {
     ['Endereço', obra?.endereco || '—'],
     ['Cliente', obra?.cliente || '—'],
     ['Responsável técnico', obra?.responsavel || '—'],
-    ['Vistoriador', v.vistoriador || '—']
+    ['Vistoriador', v.vistoriador || '—'],
+    ['Iniciada', `${dataHora(v.data)} por ${v.criadaPor || v.vistoriador || '—'}`],
+    ['Finalizada', v.finalizadaEm ? `${dataHora(v.finalizadaEm)} por ${v.finalizadaPor || '—'}` : 'em andamento']
   ]
   for (const [k, val] of dados) {
     doc.setFont('helvetica', 'bold').setFontSize(10).text(`${k}:`, L, y)
@@ -96,6 +99,7 @@ export async function gerarRelatorio(v: Vistoria) {
       texto(`Projeto: ${fmt(it.projetado)} ${it.unidade}   Medido: ${fmt(it.medido)} ${it.unidade}   Tolerância: ±${fmt(it.tolerancia)} ${it.unidade}`, L + 31, W - 31, 9)
     }
     if (it.obs) { doc.setTextColor(80); texto(`Obs.: ${it.obs}`, L + 31, W - 31, 9); doc.setTextColor(0) }
+    if (it.marcadoEm) { doc.setTextColor(130); texto(`Conferido por ${it.marcadoPor || '—'} em ${dataHora(it.marcadoEm)}`, L + 31, W - 31, 8); doc.setTextColor(0) }
     y = Math.max(y, y0 + 6) + 1.5
 
     // Fotos: até 3 por linha

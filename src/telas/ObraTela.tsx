@@ -5,6 +5,8 @@ import { MODELOS, itensDoModelo } from '../modelos'
 import { ir } from '../rota'
 import ListaPendencias from '../componentes/ListaPendencias'
 import { resumo } from '../resumo'
+import Projetos from '../componentes/Projetos'
+import { dataHora, usuarioAtual } from '../usuario'
 
 export default function ObraTela({ id }: { id: string }) {
   const obra = useLiveQuery(() => db.obras.get(id), [id])
@@ -42,6 +44,9 @@ export default function ObraTela({ id }: { id: string }) {
         </section>
       )}
 
+      <h2>Projetos</h2>
+      <Projetos obraId={id} />
+
       <div className="titulo-linha">
         <h2>Vistorias</h2>
         <button className="primario" onClick={() => setNova(true)}>+ Nova vistoria</button>
@@ -55,12 +60,13 @@ export default function ObraTela({ id }: { id: string }) {
             <li key={v.id}>
               <a href={`#/vistoria/${v.id}`} className="cartao">
                 <strong>{v.titulo}</strong>
-                <span className="sub">{new Date(v.data).toLocaleDateString('pt-BR')} · {v.vistoriador || 'sem vistoriador'}</span>
+                <span className="sub">Iniciada em {dataHora(v.data)} por {v.criadaPor || v.vistoriador || '—'}</span>
+                {v.finalizadaEm && <span className="sub">Finalizada em {dataHora(v.finalizadaEm)} por {v.finalizadaPor}</span>}
                 <span className="barra-resumo">
                   <span className="selo ok">{r.ok} ok</span>
                   <span className="selo nc">{r.nc} não conf.</span>
                   <span className="selo">{r.pendentes} a conferir</span>
-                  {v.finalizada && <span className="selo fin">Finalizada</span>}
+                  {v.finalizada && <span className="selo fin">Arquivada</span>}
                 </span>
               </a>
             </li>
@@ -99,7 +105,7 @@ function EditarObra({ id, onFechar }: { id: string; onFechar: () => void }) {
 function NovaVistoria({ obraId, responsavel, onFechar }: { obraId: string; responsavel: string; onFechar: () => void }) {
   const [sel, setSel] = useState<string[]>([])
   const [titulo, setTitulo] = useState('')
-  const [vistoriador, setVistoriador] = useState(responsavel)
+  const [vistoriador, setVistoriador] = useState(usuarioAtual() || responsavel)
 
   const alternar = (m: string) => setSel(s => (s.includes(m) ? s.filter(x => x !== m) : [...s, m]))
 
@@ -107,15 +113,19 @@ function NovaVistoria({ obraId, responsavel, onFechar }: { obraId: string; respo
     e.preventDefault()
     const modelos = MODELOS.filter(m => sel.includes(m.id))
     const id = novoId()
+    const agora = Date.now()
+    const por = usuarioAtual()
     await db.vistorias.add({
       id,
       obraId,
       titulo: titulo.trim() || `Vistoria ${modelos.map(m => m.nome).join(', ')}`,
       modelos: sel,
-      data: Date.now(),
+      data: agora,
       vistoriador,
       itens: modelos.flatMap(itensDoModelo),
-      finalizada: false
+      finalizada: false,
+      criadaPor: por,
+      historico: [{ em: agora, por, acao: 'Vistoria iniciada' }]
     })
     ir(`/vistoria/${id}`)
   }

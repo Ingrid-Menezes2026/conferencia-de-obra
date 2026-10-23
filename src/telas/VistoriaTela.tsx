@@ -7,13 +7,17 @@ import { ir } from '../rota'
 import Foto from '../componentes/Foto'
 import Assinatura from '../componentes/Assinatura'
 import { FormPendencia } from '../componentes/ListaPendencias'
+import Projetos from '../componentes/Projetos'
+import { dataHora, usuarioAtual } from '../usuario'
 
 type Filtro = 'todos' | 'conferir' | 'nc'
 
+// Toda alteração num item registra quem fez e quando
 async function atualizarItem(vid: string, itemId: string, patch: Partial<Item>) {
   await db.vistorias.where('id').equals(vid).modify(v => {
+    if (v.finalizada) return
     const it = v.itens.find(i => i.id === itemId)
-    if (it) Object.assign(it, patch)
+    if (it) Object.assign(it, patch, { marcadoPor: usuarioAtual(), marcadoEm: Date.now() })
   })
 }
 
@@ -24,6 +28,7 @@ export default function VistoriaTela({ id }: { id: string }) {
   const [filtro, setFiltro] = useState<Filtro>('todos')
   const [assinando, setAssinando] = useState(false)
   const [gerando, setGerando] = useState(false)
+  const [verProjetos, setVerProjetos] = useState(false)
 
   if (v === undefined) return null
   if (v === null) return <p>Vistoria não encontrada.</p>
@@ -43,9 +48,15 @@ export default function VistoriaTela({ id }: { id: string }) {
   }
 
   async function finalizar(assinatura: string) {
-    await db.vistorias.update(id, { assinatura, finalizada: true })
+    const em = Date.now()
+    const por = usuarioAtual()
+    const dados = {
+      assinatura, finalizada: true, finalizadaEm: em, finalizadaPor: por,
+      historico: [...(v!.historico ?? []), { em, por, acao: 'Vistoria finalizada e arquivada' }]
+    }
+    await db.vistorias.update(id, dados)
     setAssinando(false)
-    await relatorio({ ...v!, assinatura, finalizada: true })
+    await relatorio({ ...v!, ...dados })
   }
 
   async function apagar() {
@@ -60,7 +71,12 @@ export default function VistoriaTela({ id }: { id: string }) {
       <a href={`#/obra/${v.obraId}`} className="voltar">‹ {obra?.nome ?? 'Obra'}</a>
       <section className="painel">
         <h1>{v.titulo}</h1>
-        <p className="sub">{new Date(v.data).toLocaleString('pt-BR')} · {v.vistoriador || 'sem vistoriador'}</p>
+        <p className="sub">Vistoriador: {v.vistoriador || '—'}</p>
+        <p className="sub">Iniciada em {dataHora(v.data)} por {v.criadaPor || v.vistoriador || '—'}</p>
+        {v.finalizada && (
+          <p className="arquivada">🔒 Arquivada em {v.finalizadaEm ? dataHora(v.finalizadaEm) : '—'} por {v.finalizadaPor || '—'}. Não pode mais ser alterada.</p>
+        )}
+        <button className="ver-projetos" onClick={() => setVerProjetos(true)}>📐 Ver projetos da obra</button>
         <div className="progresso" title={`${r.total - r.pendentes} de ${r.total}`}>
           <span className="p-ok" style={{ width: `${(r.ok / r.total) * 100}%` }} />
           <span className="p-nc" style={{ width: `${(r.nc / r.total) * 100}%` }} />
@@ -88,18 +104,35 @@ export default function VistoriaTela({ id }: { id: string }) {
       ))}
       {visiveis.length === 0 && <p className="vazio">Nenhum item neste filtro.</p>}
 
-      <NovoItem vistoria={v} />
+      {!v.finalizada && <NovoItem vistoria={v} />}
+
+      {v.historico && v.historico.length > 0 && (
+        <section className="painel">
+          <h3>Histórico</h3>
+          <ul className="historico">
+            {v.historico.map((h, i) => <li key={i}><b>{dataHora(h.em)}</b> · {h.acao} · {h.por}</li>)}
+          </ul>
+        </section>
+      )}
+
+      {verProjetos && (
+        <div className="gaveta" onClick={() => setVerProjetos(false)}>
+          <div className="gaveta-conteudo" onClick={e => e.stopPropagation()}>
+            <div className="titulo-linha"><h2>Projetos</h2><button onClick={() => setVerProjetos(false)}>Fechar</button></div>
+            <Projetos obraId={v.obraId} editavel={false} />
+          </div>
+        </div>
+      )}
 
       <section className="painel">
         {assinando ? (
           <Assinatura onSalvar={finalizar} onCancelar={() => setAssinando(false)} />
         ) : (
           <div className="acoes">
-            <button className="perigo" onClick={apagar}>Excluir vistoria</button>
-            {v.finalizada && <button disabled={gerando} onClick={() => relatorio(v)}>{gerando ? 'Gerando…' : 'Baixar relatório PDF'}</button>}
-            <button className="primario" onClick={() => setAssinando(true)}>
-              {v.finalizada ? 'Assinar de novo' : 'Finalizar vistoria'}
-            </button>
+            {!v.finalizada && <button className="perigo" onClick={apagar}>Excluir vistoria</button>}
+            {v.finalizada
+              ? <button className="primario" disabled={gerando} onClick={() => relatorio(v)}>{gerando ? 'Gerando…' : 'Baixar relatório PDF'}</button>
+              : <button className="primario" onClick={() => setAssinando(true)}>Finalizar e arquivar</button>}
           </div>
         )}
         {r.pendentes > 0 && assinando && <p className="aviso">Ainda há {r.pendentes} itens sem conferência. Eles aparecerão como "a conferir" no relatório.</p>}
@@ -145,12 +178,14 @@ function CartaoItem({ item, vistoria, temPendencia }: { item: Item; vistoria: Vi
   }
 
   async function excluirFoto(fid: string) {
+    if (vistoria.finalizada) return
     await db.fotos.delete(fid)
     await atualizarItem(vid, item.id, { fotos: item.fotos.filter(f => f !== fid) })
   }
 
   return (
     <div className={`item ${item.status ?? 'pendente'}`}>
+      <fieldset disabled={vistoria.finalizada}>
       <p className="item-texto">{item.texto}</p>
 
       {item.tipo === 'medicao' && (
@@ -185,14 +220,19 @@ function CartaoItem({ item, vistoria, temPendencia }: { item: Item; vistoria: Vi
         {temPendencia && <span className="selo nc">Pendência criada</span>}
       </div>
 
-      {item.fotos.length > 0 && (
-        <div className="fotos">{item.fotos.map(f => <Foto key={f} id={f} onExcluir={() => excluirFoto(f)} />)}</div>
-      )}
-
       {obsAberta && (
         <textarea rows={2} placeholder="Observação" defaultValue={item.obs}
           onBlur={e => e.target.value !== item.obs && atualizarItem(vid, item.id, { obs: e.target.value })} />
       )}
+      </fieldset>
+
+      {item.fotos.length > 0 && (
+        <div className="fotos">
+          {item.fotos.map(f => <Foto key={f} id={f} onExcluir={vistoria.finalizada ? undefined : () => excluirFoto(f)} />)}
+        </div>
+      )}
+
+      {item.marcadoEm && <p className="carimbo">Conferido por {item.marcadoPor || '—'} em {dataHora(item.marcadoEm)}</p>}
 
       {pendencia && (
         <FormPendencia obraId={vistoria.obraId} vistoriaId={vid} itemId={item.id}

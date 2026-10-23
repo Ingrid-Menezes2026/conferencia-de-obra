@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { db, novoId, type Obra, type Pendencia } from '../db'
+import { dataHora, usuarioAtual } from '../usuario'
 
 const hoje = () => new Date().toISOString().slice(0, 10)
 export const atrasada = (p: Pendencia) => p.status === 'aberta' && !!p.prazo && p.prazo < hoje()
@@ -32,7 +33,9 @@ export default function ListaPendencias({ pendencias, obraId, obras }: {
               <input
                 type="checkbox"
                 checked={p.status === 'resolvida'}
-                onChange={e => db.pendencias.update(p.id, { status: e.target.checked ? 'resolvida' : 'aberta' })}
+                onChange={e => db.pendencias.update(p.id, e.target.checked
+                  ? { status: 'resolvida', resolvidaEm: Date.now(), resolvidaPor: usuarioAtual() }
+                  : { status: 'aberta', resolvidaEm: undefined, resolvidaPor: undefined })}
               />
               <span>
                 <strong>{p.descricao}</strong>
@@ -41,6 +44,10 @@ export default function ListaPendencias({ pendencias, obraId, obras }: {
                   {p.responsavel || 'Sem responsável'}
                   {p.prazo && <> · prazo {new Date(p.prazo + 'T12:00').toLocaleDateString('pt-BR')}</>}
                   {atrasada(p) && <b> · atrasada</b>}
+                </span>
+                <span className="sub">
+                  Registrada por {p.criadaPor || '—'} em {dataHora(p.criadaEm)}
+                  {p.resolvidaEm && <> · resolvida por {p.resolvidaPor} em {dataHora(p.resolvidaEm)}</>}
                 </span>
               </span>
             </label>
@@ -63,7 +70,7 @@ export function FormPendencia({ obraId, vistoriaId, itemId, descricao = '', onFe
   async function salvar(e: React.FormEvent) {
     e.preventDefault()
     if (!f.descricao.trim()) return
-    await db.pendencias.add({ id: novoId(), obraId, vistoriaId, itemId, ...f, status: 'aberta', criadaEm: Date.now() })
+    await db.pendencias.add({ id: novoId(), obraId, vistoriaId, itemId, ...f, status: 'aberta', criadaEm: Date.now(), criadaPor: usuarioAtual() })
     onFechar()
   }
   return (

@@ -1,4 +1,5 @@
 import { db, novoId } from './db'
+import { usuarioAtual } from './usuario'
 
 // Reduz a foto para no máximo 1600 px e salva no aparelho
 export async function salvarFoto(arquivo: File): Promise<string> {
@@ -11,7 +12,7 @@ export async function salvarFoto(arquivo: File): Promise<string> {
   const blob = await new Promise<Blob>(r => canvas.toBlob(b => r(b!), 'image/jpeg', 0.8))
   const pos = await localizacao()
   const id = novoId()
-  await db.fotos.add({ id, blob, criadaEm: Date.now(), lat: pos?.latitude, lng: pos?.longitude })
+  await db.fotos.add({ id, blob, criadaEm: Date.now(), autor: usuarioAtual(), lat: pos?.latitude, lng: pos?.longitude })
   return id
 }
 
