@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { CalendarClock, Camera, Check, ChevronLeft, CircleUser, ClipboardList, FileDown, History, Layers, ListChecks, Lock, MessageSquareText, Plus, Ruler, Trash2, TriangleAlert, X } from 'lucide-react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { conformidadeMedicao, db, excluirVistoria, novoId, type Item, type Status, type Vistoria } from '../db'
 import { salvarFoto } from '../fotos'
@@ -7,13 +8,17 @@ import { ir } from '../rota'
 import Foto from '../componentes/Foto'
 import Assinatura from '../componentes/Assinatura'
 import { FormPendencia } from '../componentes/ListaPendencias'
+import Projetos from '../componentes/Projetos'
+import { dataHora, usuarioAtual } from '../usuario'
 
 type Filtro = 'todos' | 'conferir' | 'nc'
 
+// Toda alteração num item registra quem fez e quando
 async function atualizarItem(vid: string, itemId: string, patch: Partial<Item>) {
   await db.vistorias.where('id').equals(vid).modify(v => {
+    if (v.finalizada) return
     const it = v.itens.find(i => i.id === itemId)
-    if (it) Object.assign(it, patch)
+    if (it) Object.assign(it, patch, { marcadoPor: usuarioAtual(), marcadoEm: Date.now() })
   })
 }
 
@@ -24,6 +29,7 @@ export default function VistoriaTela({ id }: { id: string }) {
   const [filtro, setFiltro] = useState<Filtro>('todos')
   const [assinando, setAssinando] = useState(false)
   const [gerando, setGerando] = useState(false)
+  const [verProjetos, setVerProjetos] = useState(false)
 
   if (v === undefined) return null
   if (v === null) return <p>Vistoria não encontrada.</p>
@@ -43,9 +49,15 @@ export default function VistoriaTela({ id }: { id: string }) {
   }
 
   async function finalizar(assinatura: string) {
-    await db.vistorias.update(id, { assinatura, finalizada: true })
+    const em = Date.now()
+    const por = usuarioAtual()
+    const dados = {
+      assinatura, finalizada: true, finalizadaEm: em, finalizadaPor: por,
+      historico: [...(v!.historico ?? []), { em, por, acao: 'Vistoria finalizada e arquivada' }]
+    }
+    await db.vistorias.update(id, dados)
     setAssinando(false)
-    await relatorio({ ...v!, assinatura, finalizada: true })
+    await relatorio({ ...v!, ...dados })
   }
 
   async function apagar() {
@@ -56,23 +68,35 @@ export default function VistoriaTela({ id }: { id: string }) {
   }
 
   return (
-    <>
-      <a href={`#/obra/${v.obraId}`} className="voltar">‹ {obra?.nome ?? 'Obra'}</a>
+    <div className="estreito">
+      <a href={`#/obra/${v.obraId}`} className="voltar"><ChevronLeft size={18} />{obra?.nome ?? 'Obra'}</a>
       <section className="painel">
+        <p className="eyebrow">{v.finalizada ? 'Vistoria arquivada' : 'Vistoria em andamento'}</p>
         <h1>{v.titulo}</h1>
-        <p className="sub">{new Date(v.data).toLocaleString('pt-BR')} · {v.vistoriador || 'sem vistoriador'}</p>
+        <span className="linha-info"><CircleUser size={14} />Vistoriador: {v.vistoriador || '—'}</span>
+        <span className="linha-info"><CalendarClock size={14} />Iniciada em {dataHora(v.data)} por {v.criadaPor || v.vistoriador || '—'}</span>
+        {v.finalizada && (
+          <p className="arquivada"><Lock size={16} />Arquivada em {v.finalizadaEm ? dataHora(v.finalizadaEm) : '—'} por {v.finalizadaPor || '—'}. Não pode mais ser alterada.</p>
+        )}
         <div className="progresso" title={`${r.total - r.pendentes} de ${r.total}`}>
           <span className="p-ok" style={{ width: `${(r.ok / r.total) * 100}%` }} />
           <span className="p-nc" style={{ width: `${(r.nc / r.total) * 100}%` }} />
           <span className="p-na" style={{ width: `${(r.na / r.total) * 100}%` }} />
         </div>
-        <p className="sub">
-          {r.ok} conformes · {r.nc} não conformes · {r.na} não se aplica · <b>{r.pendentes} a conferir</b>
-        </p>
+        <div className="legenda">
+          <span><i style={{ background: 'var(--ok)' }} /><b>{r.ok}</b> conformes</span>
+          <span><i style={{ background: 'var(--nc)' }} /><b>{r.nc}</b> não conformes</span>
+          <span><i style={{ background: 'var(--greige)' }} /><b>{r.na}</b> N/A</span>
+          <span><i style={{ background: 'var(--areia)' }} /><b>{r.pendentes}</b> a conferir</span>
+        </div>
+        <div className="barra-vistoria">
+          <button onClick={() => setVerProjetos(true)}><Layers size={17} />Ver projetos</button>
+          <button disabled={gerando} onClick={() => relatorio(v)}><FileDown size={17} />{gerando ? 'Gerando…' : v.finalizada ? 'Relatório PDF' : 'Prévia do relatório'}</button>
+        </div>
         <div className="filtros">
           {(['todos', 'conferir', 'nc'] as Filtro[]).map(f => (
             <button key={f} className={filtro === f ? 'ativo' : ''} onClick={() => setFiltro(f)}>
-              {f === 'todos' ? 'Todos' : f === 'conferir' ? `A conferir (${r.pendentes})` : `Não conformes (${r.nc})`}
+              {f === 'todos' ? `Todos (${r.total})` : f === 'conferir' ? `A conferir (${r.pendentes})` : `Não conformes (${r.nc})`}
             </button>
           ))}
         </div>
@@ -86,25 +110,42 @@ export default function VistoriaTela({ id }: { id: string }) {
           ))}
         </section>
       ))}
-      {visiveis.length === 0 && <p className="vazio">Nenhum item neste filtro.</p>}
+      {visiveis.length === 0 && <div className="vazio"><ListChecks size={30} /><p>Nenhum item neste filtro.</p></div>}
 
-      <NovoItem vistoria={v} />
+      {!v.finalizada && <NovoItem vistoria={v} />}
 
-      <section className="painel">
-        {assinando ? (
-          <Assinatura onSalvar={finalizar} onCancelar={() => setAssinando(false)} />
-        ) : (
-          <div className="acoes">
-            <button className="perigo" onClick={apagar}>Excluir vistoria</button>
-            {v.finalizada && <button disabled={gerando} onClick={() => relatorio(v)}>{gerando ? 'Gerando…' : 'Baixar relatório PDF'}</button>}
-            <button className="primario" onClick={() => setAssinando(true)}>
-              {v.finalizada ? 'Assinar de novo' : 'Finalizar vistoria'}
-            </button>
+      {v.historico && v.historico.length > 0 && (
+        <section className="painel">
+          <div className="painel-titulo"><History size={18} /><h3>Histórico</h3></div>
+          <ul className="historico">
+            {v.historico.map((h, i) => <li key={i}><span><b>{h.acao}</b><span className="sub">{dataHora(h.em)} · {h.por}</span></span></li>)}
+          </ul>
+        </section>
+      )}
+
+      {verProjetos && (
+        <div className="gaveta" onClick={() => setVerProjetos(false)}>
+          <div className="gaveta-conteudo" onClick={e => e.stopPropagation()}>
+            <div className="titulo-linha"><h2><Layers size={19} />Projetos da obra</h2><button onClick={() => setVerProjetos(false)}><X size={17} />Fechar</button></div>
+            <Projetos obraId={v.obraId} editavel={false} />
           </div>
-        )}
-        {r.pendentes > 0 && assinando && <p className="aviso">Ainda há {r.pendentes} itens sem conferência. Eles aparecerão como "a conferir" no relatório.</p>}
-      </section>
-    </>
+        </div>
+      )}
+
+      {!v.finalizada && (
+        <section className="painel">
+          {assinando ? (
+            <Assinatura onSalvar={finalizar} onCancelar={() => setAssinando(false)} />
+          ) : (
+            <div className="acoes">
+              <button className="perigo" onClick={apagar}><Trash2 size={16} />Excluir</button>
+              <button className="primario" onClick={() => setAssinando(true)}><Lock size={16} />Finalizar e arquivar</button>
+            </div>
+          )}
+          {r.pendentes > 0 && assinando && <p className="aviso"><TriangleAlert size={16} />Ainda há {r.pendentes} itens sem conferência. Eles aparecerão como "a conferir" no relatório.</p>}
+        </section>
+      )}
+    </div>
   )
 }
 
@@ -145,12 +186,14 @@ function CartaoItem({ item, vistoria, temPendencia }: { item: Item; vistoria: Vi
   }
 
   async function excluirFoto(fid: string) {
+    if (vistoria.finalizada) return
     await db.fotos.delete(fid)
     await atualizarItem(vid, item.id, { fotos: item.fotos.filter(f => f !== fid) })
   }
 
   return (
     <div className={`item ${item.status ?? 'pendente'}`}>
+      <fieldset disabled={vistoria.finalizada}>
       <p className="item-texto">{item.texto}</p>
 
       {item.tipo === 'medicao' && (
@@ -163,36 +206,41 @@ function CartaoItem({ item, vistoria, temPendencia }: { item: Item; vistoria: Vi
           </label>
           {item.medido != null && item.projetado != null && (
             <span className={`diferenca ${item.status}`}>
-              Diferença: {fmt(Math.round((item.medido - item.projetado) * 100) / 100)} {item.unidade}
+              <Ruler size={14} />Diferença: {fmt(Math.round((item.medido - item.projetado) * 100) / 100)} {item.unidade}
             </span>
           )}
         </div>
       )}
 
       <div className="botoes-status">
-        <button className={item.status === 'ok' ? 'b-ok ativo' : 'b-ok'} onClick={() => marcar('ok')}>✓ OK</button>
-        <button className={item.status === 'nc' ? 'b-nc ativo' : 'b-nc'} onClick={() => marcar('nc')}>✗ Não conforme</button>
+        <button className={item.status === 'ok' ? 'b-ok ativo' : 'b-ok'} onClick={() => marcar('ok')}><Check size={16} strokeWidth={2.5} />OK</button>
+        <button className={item.status === 'nc' ? 'b-nc ativo' : 'b-nc'} onClick={() => marcar('nc')}><X size={16} strokeWidth={2.5} />Não conforme</button>
         <button className={item.status === 'na' ? 'b-na ativo' : 'b-na'} onClick={() => marcar('na')}>N/A</button>
       </div>
 
       <div className="item-extras">
         <label className="botao-foto">
-          {enviando ? 'Salvando…' : '📷 Foto'}
+          <Camera size={16} />{enviando ? 'Salvando…' : 'Foto'}
           <input type="file" accept="image/*" capture="environment" multiple hidden onChange={adicionarFotos} />
         </label>
-        <button className="link" onClick={() => setObsAberta(o => !o)}>📝 Observação</button>
-        {item.status === 'nc' && !temPendencia && <button className="link" onClick={() => setPendencia(true)}>⚠ Criar pendência</button>}
-        {temPendencia && <span className="selo nc">Pendência criada</span>}
+        <button className="link" onClick={() => setObsAberta(o => !o)}><MessageSquareText size={16} />Observação</button>
+        {item.status === 'nc' && !temPendencia && <button className="link" onClick={() => setPendencia(true)}><TriangleAlert size={16} />Criar pendência</button>}
+        {temPendencia && <span className="selo nc"><ClipboardList size={12} />Pendência criada</span>}
       </div>
-
-      {item.fotos.length > 0 && (
-        <div className="fotos">{item.fotos.map(f => <Foto key={f} id={f} onExcluir={() => excluirFoto(f)} />)}</div>
-      )}
 
       {obsAberta && (
         <textarea rows={2} placeholder="Observação" defaultValue={item.obs}
           onBlur={e => e.target.value !== item.obs && atualizarItem(vid, item.id, { obs: e.target.value })} />
       )}
+      </fieldset>
+
+      {item.fotos.length > 0 && (
+        <div className="fotos">
+          {item.fotos.map(f => <Foto key={f} id={f} onExcluir={vistoria.finalizada ? undefined : () => excluirFoto(f)} />)}
+        </div>
+      )}
+
+      {item.marcadoEm && <p className="carimbo"><CircleUser size={13} />Conferido por {item.marcadoPor || '—'} em {dataHora(item.marcadoEm)}</p>}
 
       {pendencia && (
         <FormPendencia obraId={vistoria.obraId} vistoriaId={vid} itemId={item.id}
@@ -209,7 +257,7 @@ function NovoItem({ vistoria }: { vistoria: Vistoria }) {
   const [medicao, setMedicao] = useState(false)
   const [unidade, setUnidade] = useState('cm')
 
-  if (!aberto) return <button className="adicionar" onClick={() => setAberto(true)}>+ Adicionar item próprio</button>
+  if (!aberto) return <button className="adicionar" onClick={() => setAberto(true)}><Plus size={17} />Adicionar item próprio</button>
 
   async function salvar(e: React.FormEvent) {
     e.preventDefault()
@@ -225,6 +273,7 @@ function NovoItem({ vistoria }: { vistoria: Vistoria }) {
   const secoes = [...new Set([...vistoria.itens.map(i => i.secao), 'Itens adicionais'])]
   return (
     <form className="painel" onSubmit={salvar}>
+      <div className="painel-titulo"><h3>Novo item</h3></div>
       <label>O que conferir<input value={texto} onChange={e => setTexto(e.target.value)} autoFocus /></label>
       <label>Seção
         <select value={secao} onChange={e => setSecao(e.target.value)}>

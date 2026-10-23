@@ -14,7 +14,7 @@ export function useFotoURL(id: string) {
   return { url, foto }
 }
 
-export default function Foto({ id, onExcluir }: { id: string; onExcluir: () => void }) {
+export default function Foto({ id, onExcluir }: { id: string; onExcluir?: () => void }) {
   const { url, foto } = useFotoURL(id)
   const [aberta, setAberta] = useState(false)
   if (!url) return <span className="miniatura carregando" />
@@ -29,9 +29,10 @@ export default function Foto({ id, onExcluir }: { id: string; onExcluir: () => v
           <div className="visor-info" onClick={e => e.stopPropagation()}>
             <span>
               {new Date(foto!.criadaEm).toLocaleString('pt-BR')}
+              {foto!.autor && ` · ${foto!.autor}`}
               {foto!.lat != null && ` · ${foto!.lat.toFixed(5)}, ${foto!.lng!.toFixed(5)}`}
             </span>
-            <button className="perigo" onClick={() => { if (confirm('Excluir esta foto?')) { setAberta(false); onExcluir() } }}>Excluir</button>
+            {onExcluir && <button className="perigo" onClick={() => { if (confirm('Excluir esta foto?')) { setAberta(false); onExcluir() } }}>Excluir</button>}
             <button onClick={() => setAberta(false)}>Fechar</button>
           </div>
         </div>

@@ -7,9 +7,15 @@ export default function Pendencias() {
   const obras = useLiveQuery(() => db.obras.toArray(), [])
   if (!pendencias || !obras) return null
   return (
-    <>
-      <h1>Pendências de todas as obras</h1>
+    <div className="estreito">
+      <div className="cabecalho">
+        <div>
+          <p className="eyebrow">Acompanhamento</p>
+          <h1>Pendências</h1>
+          <p className="sub">Correções abertas em todas as obras, ordenadas pelo prazo.</p>
+        </div>
+      </div>
       <ListaPendencias pendencias={pendencias} obras={obras} />
-    </>
+    </div>
   )
 }

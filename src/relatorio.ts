@@ -2,6 +2,7 @@ import { jsPDF } from 'jspdf'
 import { db, type Item, type Vistoria } from './db'
 import { blobParaDataURL } from './fotos'
 import { resumo } from './resumo'
+import { dataHora } from './usuario'
 
 const GRAFITE: [number, number, number] = [39, 43, 43]
 const COBRE: [number, number, number] = [142, 97, 66]
@@ -34,27 +35,38 @@ export async function gerarRelatorio(v: Vistoria) {
   }
 
   // Cabeçalho
-  doc.setFillColor(...GRAFITE).rect(0, 0, 210, 28, 'F')
-  doc.setFillColor(...COBRE).rect(0, 28, 210, 1.5, 'F')
-  doc.setTextColor(255).setFont('helvetica', 'bold').setFontSize(16).text('Relatório de Vistoria', L, 12)
-  doc.setFont('helvetica', 'normal').setFontSize(10).text(v.titulo, L, 20)
-  doc.text(new Date(v.data).toLocaleString('pt-BR'), 195, 20, { align: 'right' })
+  doc.setFillColor(...GRAFITE).rect(0, 0, 210, 34, 'F')
+  doc.setFillColor(...COBRE).rect(0, 34, 210, 1.2, 'F')
+  // marca: casa com check
+  doc.setFillColor(231, 223, 215).roundedRect(L, 8, 18, 18, 3, 3, 'F')
+  doc.setFillColor(...GRAFITE).triangle(L + 3, 17, L + 9, 11.5, L + 15, 17, 'F').rect(L + 4.2, 17, 9.6, 6, 'F')
+  doc.setDrawColor(...COBRE).setLineWidth(1.1).lines([[2, 2], [4, -4.5]], L + 9.5, 19.5)
+  doc.setTextColor(198, 188, 176).setFont('helvetica', 'bold').setFontSize(7.5).text('CONFERÊNCIA DE OBRA', L + 23, 13, { charSpace: 0.6 })
+  doc.setTextColor(255).setFontSize(16).text('Relatório de Vistoria', L + 23, 20.5)
+  doc.setFont('helvetica', 'normal').setFontSize(9.5).setTextColor(231, 223, 215).text(v.titulo, L + 23, 26.5)
+  doc.setFontSize(8).setTextColor(198, 188, 176).text(v.finalizada ? 'ARQUIVADA' : 'EM ANDAMENTO', 195, 13, { align: 'right', charSpace: 0.5 })
+  doc.setFontSize(9).setTextColor(255).text(dataHora(v.finalizadaEm ?? v.data), 195, 20.5, { align: 'right' })
   doc.setTextColor(0)
-  y = 36
+  y = 44
 
-  // Dados da obra
+  // Dados da obra, em duas colunas
+  doc.setTextColor(...COBRE).setFont('helvetica', 'bold').setFontSize(13).text(obra?.nome ?? '—', L, y)
+  y += 3
   const dados: [string, string][] = [
-    ['Obra', obra?.nome ?? '—'],
     ['Endereço', obra?.endereco || '—'],
     ['Cliente', obra?.cliente || '—'],
     ['Responsável técnico', obra?.responsavel || '—'],
-    ['Vistoriador', v.vistoriador || '—']
+    ['Vistoriador', v.vistoriador || '—'],
+    ['Iniciada', `${dataHora(v.data)} · ${v.criadaPor || v.vistoriador || '—'}`],
+    ['Finalizada', v.finalizadaEm ? `${dataHora(v.finalizadaEm)} · ${v.finalizadaPor || '—'}` : 'em andamento']
   ]
-  for (const [k, val] of dados) {
-    doc.setFont('helvetica', 'bold').setFontSize(10).text(`${k}:`, L, y)
-    doc.setFont('helvetica', 'normal').text(val, L + 42, y)
-    y += 5.5
-  }
+  dados.forEach(([k, val], i) => {
+    const x = L + (i % 2) * 92, yy = y + 6 + Math.floor(i / 2) * 10
+    doc.setTextColor(130, 122, 114).setFont('helvetica', 'normal').setFontSize(7.5).text(k.toUpperCase(), x, yy, { charSpace: 0.3 })
+    doc.setTextColor(39, 43, 43).setFontSize(9.5).text(doc.splitTextToSize(val, 88)[0], x, yy + 4.2)
+  })
+  y += 6 + 3 * 10
+  doc.setTextColor(0)
 
   // Resumo
   const r = resumo(v.itens)
@@ -64,9 +76,10 @@ export async function gerarRelatorio(v: Vistoria) {
   ]
   caixas.forEach(([rot, n, cor], i) => {
     const x = L + i * 46
-    doc.setDrawColor(cor[0], cor[1], cor[2]).setLineWidth(0.6).roundedRect(x, y, 42, 16, 2, 2)
-    doc.setTextColor(cor[0], cor[1], cor[2]).setFont('helvetica', 'bold').setFontSize(15).text(String(n), x + 21, y + 8, { align: 'center' })
-    doc.setFontSize(8).setFont('helvetica', 'normal').text(rot, x + 21, y + 13, { align: 'center' })
+    doc.setFillColor(250, 248, 245).setDrawColor(228, 221, 212).setLineWidth(0.3).roundedRect(x, y, 42, 17, 2, 2, 'FD')
+    doc.setFillColor(cor[0], cor[1], cor[2]).rect(x, y + 2, 1.2, 13, 'F')
+    doc.setTextColor(cor[0], cor[1], cor[2]).setFont('helvetica', 'bold').setFontSize(15).text(String(n), x + 21, y + 8.5, { align: 'center' })
+    doc.setFontSize(7.5).setFont('helvetica', 'normal').setTextColor(115, 107, 99).text(rot, x + 21, y + 13.5, { align: 'center' })
   })
   doc.setTextColor(0)
   y += 24
@@ -96,6 +109,7 @@ export async function gerarRelatorio(v: Vistoria) {
       texto(`Projeto: ${fmt(it.projetado)} ${it.unidade}   Medido: ${fmt(it.medido)} ${it.unidade}   Tolerância: ±${fmt(it.tolerancia)} ${it.unidade}`, L + 31, W - 31, 9)
     }
     if (it.obs) { doc.setTextColor(80); texto(`Obs.: ${it.obs}`, L + 31, W - 31, 9); doc.setTextColor(0) }
+    if (it.marcadoEm) { doc.setTextColor(130); texto(`Conferido por ${it.marcadoPor || '—'} em ${dataHora(it.marcadoEm)}`, L + 31, W - 31, 8); doc.setTextColor(0) }
     y = Math.max(y, y0 + 6) + 1.5
 
     // Fotos: até 3 por linha
