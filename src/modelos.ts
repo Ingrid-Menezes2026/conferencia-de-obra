@@ -153,36 +153,6 @@ export const MODELOS: Modelo[] = [
         'Material estocado em local coberto e organizado'
       ]
     }
-  },
-  {
-    id: 'seguranca',
-    nome: 'Segurança do trabalho (NR-18)',
-    descricao: 'EPIs, proteções coletivas, andaimes e canteiro',
-    secoes: {
-      'EPIs': [
-        'Capacete, botina e óculos em uso',
-        'Cinto paraquedista em trabalho acima de 2 m',
-        'Luvas e protetor auricular quando necessário',
-        'Fichas de entrega de EPI atualizadas'
-      ],
-      'Proteções coletivas': [
-        'Guarda-corpo nas bordas de laje e aberturas',
-        'Aberturas no piso fechadas',
-        'Linha de vida instalada',
-        'Bandejas de proteção (quando aplicável)'
-      ],
-      'Andaimes e escadas': [
-        'Andaimes com piso completo, travados e ancorados',
-        'Escadas em bom estado e fixadas'
-      ],
-      'Canteiro': [
-        'Instalações elétricas provisórias protegidas',
-        'Extintores sinalizados e dentro da validade',
-        'Sinalização de segurança visível',
-        'Área de vivência limpa (sanitários, refeitório)',
-        'Organização e limpeza do canteiro'
-      ]
-    }
   }
 ]
 

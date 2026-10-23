@@ -5,7 +5,7 @@ App para vistoria e conferência de obras em campo. Funciona no celular e no com
 ## O que faz
 
 - **Obras:** cadastro com endereço, cliente e responsável técnico.
-- **Vistorias com checklists prontos:** fundação, estrutura, alvenaria, instalações, acabamento, recebimento de materiais e segurança do trabalho (NR-18). Cada item é marcado como OK, não conforme ou N/A, e dá para adicionar itens próprios.
+- **Vistorias com checklists prontos:** fundação, estrutura, alvenaria, instalações, acabamento e recebimento de materiais. Cada item é marcado como OK, não conforme ou N/A, e dá para adicionar itens próprios.
 - **Medições:** valor de projeto x medido com tolerância; o app marca conforme ou não conforme sozinho.
 - **Fotos e observações** em cada item (foto com data, hora e localização).
 - **Pendências** com responsável e prazo, geradas a partir dos itens não conformes; prazos vencidos aparecem em destaque.
