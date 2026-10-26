@@ -95,6 +95,22 @@ export async function gerarRelatorio(v: Vistoria) {
     for (const it of v.itens.filter(i => i.secao === s)) await desenharItem(it)
   }
 
+  // Fotos em grade, 2 por linha dentro da largura dada. Devolve o y final.
+  async function fotosEmGrade(ids: string[], x: number, larg: number) {
+    const fw = (larg - 3) / 2, fh = fw * 0.75
+    const fotos = (await Promise.all(ids.map(id => db.fotos.get(id)))).filter(f => f) as { blob: Blob }[]
+    for (let i = 0; i < Math.min(fotos.length, 4); i++) {
+      const col = i % 2
+      const url = await blobParaDataURL(fotos[i].blob)
+      const props = doc.getImageProperties(url)
+      const esc = Math.min(fw / props.width, fh / props.height)
+      const w = props.width * esc, h = props.height * esc
+      doc.addImage(url, 'JPEG', x + col * (fw + 3) + (fw - w) / 2, y + (fh - h) / 2, w, h)
+      if (col === 1 || i === Math.min(fotos.length, 4) - 1) y += fh + 3
+    }
+    return y
+  }
+
   async function desenharItem(it: Item) {
     const st = it.status ?? 'pendente'
     espaco(10)
@@ -165,6 +181,28 @@ export async function gerarRelatorio(v: Vistoria) {
         doc.setTextColor(130).setFont('helvetica', 'normal').setFontSize(8).text(`${pt.criadoPor} · ${dataHora(pt.criadoEm)}`, L + W, y0 + 2.5, { align: 'right' })
         doc.setTextColor(0)
         y = Math.max(y, y0 + 5) + 1.5
+        // Prova (antes) e contraprova (depois) lado a lado
+        if (pt.provas?.length || pt.resolvidoEm) {
+          const meia = (W - 8 - 6) / 2, xa = L + 8, xd = xa + meia + 6
+          const linhas = Math.max(1, ...[pt.provas, pt.contraprovas].map(l => Math.ceil(Math.min(l?.length ?? 0, 4) / 2)))
+          espaco(9 + linhas * ((meia - 3) / 2 * 0.75 + 3))
+          const yt = y
+          doc.setFont('helvetica', 'bold').setFontSize(8.5)
+          doc.setTextColor(...COBRE).text('PROVA (antes)', xa, y + 3)
+          if (pt.resolvidoEm) {
+            doc.setTextColor(46, 125, 50).text('CONTRAPROVA (depois)', xd, y + 3)
+            doc.setFont('helvetica', 'normal').setFontSize(7.5).text(`Resolvido em ${dataHora(pt.resolvidoEm)} por ${pt.resolvidoPor || '—'}`, xd, y + 7)
+          } else {
+            doc.setTextColor(198, 40, 40).text('AGUARDANDO CORREÇÃO', xd, y + 3)
+          }
+          doc.setTextColor(0)
+          y = yt + 9
+          const ya = await fotosEmGrade(pt.provas ?? [], xa, meia)
+          y = yt + 9
+          const yd = await fotosEmGrade(pt.contraprovas ?? [], xd, meia)
+          y = Math.max(ya, yd, yt + 10)
+        }
+        y += 1.5
       }
       y += 5
     }
