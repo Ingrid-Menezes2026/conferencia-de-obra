@@ -266,3 +266,40 @@ fieldset:disabled .item-extras { display: none; }
 .entrada-marca p { color: var(--greige); margin: .25rem 0 0; font-size: .9rem; }
 .entrada .painel { padding: 1.4rem; box-shadow: var(--sombra-alta); }
 .entrada button.primario { width: 100%; margin-top: .25rem; }
+
+/* Marcações no projeto */
+.ferramentas { display: flex; gap: .35rem; padding: .45rem .8rem; width: 100%; background: var(--grafite-2); flex-wrap: wrap; align-items: center; }
+.ferramentas button { min-height: 38px; padding: .3rem .6rem; font-size: .82rem; background: transparent; color: var(--areia); border-color: #4b5151; }
+.ferramentas button:hover:not(:disabled) { background: #4b5151; }
+.ferramentas button.ativo { background: var(--cobre); border-color: var(--cobre); color: #fff; }
+.ferramentas button.cor { width: 30px; min-height: 30px; padding: 0; border-radius: 50%; border: 2px solid transparent; }
+.ferramentas button.cor.ativo { border-color: #fff; box-shadow: 0 0 0 2px var(--cobre); }
+.visor-barra button.destaque { background: var(--cobre); border-color: var(--cobre); }
+.dica { margin: 0; width: 100%; text-align: center; font-size: .8rem; color: var(--areia); background: #2f3434; padding: .35rem; }
+.pagina { position: relative; margin: 0 auto; }
+.pagina canvas { display: block; background: #fff; box-shadow: 0 4px 24px rgba(0, 0, 0, .4); }
+.camada { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.camada.ponto, .camada.caneta { pointer-events: auto; touch-action: none; cursor: crosshair; }
+.pino { position: absolute; transform: translate(-50%, -50%); width: 26px; height: 26px; border-radius: 50%; background: #d32f2f; color: #fff; font-size: .75rem; font-weight: 700; display: grid; place-items: center; border: 2px solid #fff; box-shadow: 0 2px 6px rgba(0, 0, 0, .4); pointer-events: none; }
+.pino.novo { background: var(--cobre); animation: pulsar 1s infinite alternate; }
+.pino.estatico { position: static; transform: none; flex: none; }
+@keyframes pulsar { to { transform: translate(-50%, -50%) scale(1.15); } }
+.cartao-ponto { position: absolute; left: 50%; bottom: 70px; transform: translateX(-50%); width: min(520px, calc(100% - 24px)); background: var(--cartao); color: var(--texto); border-radius: 16px; padding: 1rem; box-shadow: var(--sombra-alta); z-index: 5; display: grid; gap: .6rem; }
+.sugestoes { display: flex; flex-wrap: wrap; gap: .35rem; }
+.sugestoes button { min-height: 34px; padding: .25rem .7rem; font-size: .8rem; border-radius: 99px; }
+.linha-form { display: flex; gap: .4rem; }
+.linha-form button { flex: none; }
+.lista-pontos { position: absolute; right: 12px; top: 120px; width: min(340px, calc(100% - 24px)); max-height: 60vh; overflow-y: auto; background: var(--cartao); color: var(--texto); border-radius: 14px; padding: .8rem 1rem; box-shadow: var(--sombra-alta); z-index: 4; }
+.lista-pontos .titulo-linha { margin: 0 0 .5rem; }
+.lista-pontos ol { list-style: none; padding: 0; margin: 0; display: grid; gap: .5rem; }
+.lista-pontos li { display: flex; align-items: center; gap: .6rem; }
+.lista-pontos .desc { flex: 1; min-width: 0; }
+.lista-pontos .desc b { display: block; font-size: .88rem; }
+.visor-pdf { position: fixed; }
+.marcacoes-vistoria { display: grid; gap: .75rem; }
+.marcacao { display: grid; grid-template-columns: 110px 1fr; gap: .8rem; align-items: start; }
+.marcacao img { width: 110px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid var(--borda); background: #fff; cursor: pointer; }
+.marcacao ol { margin: .3rem 0 0; padding-left: 0; list-style: none; font-size: .84rem; display: grid; gap: .2rem; }
+.marcacao ol li { display: flex; gap: .4rem; align-items: center; }
+.marcacao .pino { width: 20px; height: 20px; font-size: .65rem; border-width: 1.5px; }
+.badge-marcas { display: inline-block; white-space: nowrap; vertical-align: middle; font-size: .7rem; font-weight: 650; color: #fff; background: #d32f2f; border-radius: 99px; padding: .1rem .45rem; margin-left: .35rem; }

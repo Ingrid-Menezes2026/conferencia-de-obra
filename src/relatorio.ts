@@ -130,6 +130,46 @@ export async function gerarRelatorio(v: Vistoria) {
     y += 3
   }
 
+  // Marcações nos projetos
+  const marcacoes = (await db.marcacoes.where('vistoriaId').equals(v.id).toArray())
+    .filter(m => m.imagem)
+    .sort((a, b) => Math.min(999, ...a.pontos.map(p => p.n)) - Math.min(999, ...b.pontos.map(p => p.n)))
+  if (marcacoes.length) {
+    const projetos = await db.projetos.toArray()
+    novaPagina()
+    texto('Marcações nos projetos', L, W, 13, 'bold')
+    y += 3
+    for (const m of marcacoes) {
+      const nome = projetos.find(p => p.id === m.projetoId)?.nome ?? 'Projeto'
+      const url = await blobParaDataURL(m.imagem!)
+      const props = doc.getImageProperties(url)
+      const esc = Math.min(W / props.width, 165 / props.height)
+      const w = props.width * esc, h = props.height * esc
+      espaco(h + 22)
+      doc.setFillColor(231, 223, 215).rect(L, y, W, 8, 'F')
+      doc.setTextColor(...COBRE).setFont('helvetica', 'bold').setFontSize(10.5).text(`${nome} · página ${m.pagina}`, L + 2, y + 5.5)
+      doc.setTextColor(130).setFont('helvetica', 'normal').setFontSize(8).text(`Salvo por ${m.atualizadoPor} em ${dataHora(m.atualizadoEm)}`, L + W - 2, y + 5.5, { align: 'right' })
+      doc.setTextColor(0)
+      y += 11
+      doc.setDrawColor(221, 212, 201).setLineWidth(0.3).rect(L + (W - w) / 2, y, w, h)
+      doc.addImage(url, 'JPEG', L + (W - w) / 2, y, w, h)
+      y += h + 4
+      for (const pt of [...m.pontos].sort((a, b) => a.n - b.n)) {
+        espaco(7)
+        doc.setFillColor(211, 47, 47).circle(L + 3, y + 1.6, 2.6, 'F')
+        doc.setTextColor(255).setFont('helvetica', 'bold').setFontSize(7.5).text(String(pt.n), L + 3, y + 2.7, { align: 'center' })
+        doc.setTextColor(0)
+        const y0 = y
+        y -= 0.3
+        texto(pt.descricao, L + 8, W - 60, 10, 'bold')
+        doc.setTextColor(130).setFont('helvetica', 'normal').setFontSize(8).text(`${pt.criadoPor} · ${dataHora(pt.criadoEm)}`, L + W, y0 + 2.5, { align: 'right' })
+        doc.setTextColor(0)
+        y = Math.max(y, y0 + 5) + 1.5
+      }
+      y += 5
+    }
+  }
+
   // Pendências
   if (pendencias.length) {
     espaco(20)
