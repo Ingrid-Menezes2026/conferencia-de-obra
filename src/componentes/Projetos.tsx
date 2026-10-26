@@ -10,8 +10,14 @@ const VisorPdf = lazy(() => import('./VisorPdf'))
 const tamanho = (b: number) => (b > 1e6 ? `${(b / 1e6).toFixed(1).replace('.', ',')} MB` : `${Math.round(b / 1e3)} KB`)
 
 // Lista de projetos da obra. "editavel" mostra o envio e a exclusão.
-export default function Projetos({ obraId, editavel = true }: { obraId: string; editavel?: boolean }) {
+export default function Projetos({ obraId, editavel = true, vistoriaId, marcar = false }: {
+  obraId: string
+  editavel?: boolean
+  vistoriaId?: string
+  marcar?: boolean
+}) {
   const projetos = useLiveQuery(() => db.projetos.where('obraId').equals(obraId).sortBy('criadoEm'), [obraId])
+  const marcacoes = useLiveQuery(() => (vistoriaId ? db.marcacoes.where('vistoriaId').equals(vistoriaId).toArray() : []), [vistoriaId])
   const [enviando, setEnviando] = useState(false)
   const [aberto, setAberto] = useState<Projeto | null>(null)
 
@@ -36,7 +42,10 @@ export default function Projetos({ obraId, editavel = true }: { obraId: string; 
                 <button className="projeto-abrir" onClick={() => (p.formato === 'pdf' ? setAberto(p) : baixar(p))}>
                   <span className={`formato ${p.formato}`}>{p.formato.toUpperCase()}</span>
                   <span>
-                    <strong>{p.nome}{p.revisao && ` · Rev. ${p.revisao}`}</strong>
+                    <strong>
+                      {p.nome}{p.revisao && ` · Rev. ${p.revisao}`}
+                      {(() => { const n = marcacoes?.filter(m => m.projetoId === p.id).reduce((s, m) => s + m.pontos.length, 0) ?? 0; return n > 0 && <span className="badge-marcas">{n} ponto{n > 1 ? 's' : ''}</span> })()}
+                    </strong>
                     <span className="sub">{p.nomeArquivo} · {tamanho(p.tamanho)}</span>
                     <span className="sub">Enviado por {p.enviadoPor || '—'} em {dataHora(p.criadoEm)}</span>
                   </span>
@@ -50,11 +59,11 @@ export default function Projetos({ obraId, editavel = true }: { obraId: string; 
         </div>
       ))}
       {projetos.some(p => p.formato === 'dwg') && (
-        <p className="sub">Arquivos DWG são baixados para abrir em um visualizador de CAD. A visualização direta no app vem junto com a análise automática.</p>
+        <p className="sub">Arquivos DWG são baixados para abrir em um visualizador de CAD. Para marcar pontos e desenhar, envie a prancha também em PDF.</p>
       )}
       {aberto && (
         <Suspense fallback={<div className="visor"><p className="visor-info">Abrindo projeto…</p></div>}>
-          <VisorPdf projeto={aberto} onFechar={() => setAberto(null)} />
+          <VisorPdf projeto={aberto} onFechar={() => setAberto(null)} vistoriaId={vistoriaId} obraId={obraId} editavel={marcar} />
         </Suspense>
       )}
     </>

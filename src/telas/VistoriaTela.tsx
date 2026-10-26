@@ -9,6 +9,7 @@ import Foto from '../componentes/Foto'
 import Assinatura from '../componentes/Assinatura'
 import { FormPendencia } from '../componentes/ListaPendencias'
 import Projetos from '../componentes/Projetos'
+import MarcacoesVistoria from '../componentes/MarcacoesVistoria'
 import { dataHora, usuarioAtual } from '../usuario'
 
 type Filtro = 'todos' | 'conferir' | 'nc'
@@ -90,7 +91,7 @@ export default function VistoriaTela({ id }: { id: string }) {
           <span><i style={{ background: 'var(--areia)' }} /><b>{r.pendentes}</b> a conferir</span>
         </div>
         <div className="barra-vistoria">
-          <button onClick={() => setVerProjetos(true)}><Layers size={17} />Ver projetos</button>
+          <button onClick={() => setVerProjetos(true)}><Layers size={17} />{v.finalizada ? 'Ver projetos' : 'Projetos e marcações'}</button>
           <button disabled={gerando} onClick={() => relatorio(v)}><FileDown size={17} />{gerando ? 'Gerando…' : v.finalizada ? 'Relatório PDF' : 'Prévia do relatório'}</button>
         </div>
         <div className="filtros">
@@ -114,6 +115,8 @@ export default function VistoriaTela({ id }: { id: string }) {
 
       {!v.finalizada && <NovoItem vistoria={v} />}
 
+      <MarcacoesVistoria vistoriaId={v.id} onAbrir={() => setVerProjetos(true)} />
+
       {v.historico && v.historico.length > 0 && (
         <section className="painel">
           <div className="painel-titulo"><History size={18} /><h3>Histórico</h3></div>
@@ -127,7 +130,8 @@ export default function VistoriaTela({ id }: { id: string }) {
         <div className="gaveta" onClick={() => setVerProjetos(false)}>
           <div className="gaveta-conteudo" onClick={e => e.stopPropagation()}>
             <div className="titulo-linha"><h2><Layers size={19} />Projetos da obra</h2><button onClick={() => setVerProjetos(false)}><X size={17} />Fechar</button></div>
-            <Projetos obraId={v.obraId} editavel={false} />
+            <Projetos obraId={v.obraId} editavel={false} vistoriaId={v.id} marcar={!v.finalizada} />
+            {!v.finalizada && <p className="sub" style={{ marginTop: '1rem' }}>Abra um projeto em PDF para marcar pontos numerados e desenhar por cima.</p>}
           </div>
         </div>
       )}
