@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import {
-  ChevronLeft, ChevronRight, Download, Hand, List, MapPin, PenLine, Save, Trash2, Undo2, X, ZoomIn, ZoomOut, ClipboardList
+  ChevronLeft, ChevronRight, Download, Hand, List, MapPin, PenLine, Save, Trash2, Undo2, X, ZoomIn, ZoomOut, ClipboardList, Camera
 } from 'lucide-react'
 import * as pdfjs from 'pdfjs-dist'
 import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
 import { db, novoId, type Marcacao, type Ponto, type Projeto, type Traco } from '../db'
 import { baixar } from '../arquivos'
+import { salvarFoto } from '../fotos'
+import Foto from './Foto'
 import { dataHora, usuarioAtual } from '../usuario'
 
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl
@@ -52,6 +54,9 @@ export default function VisorPdf({ projeto, onFechar, vistoriaId, obraId, editav
   const canvas = useRef<HTMLCanvasElement>(null)
   const area = useRef<HTMLDivElement>(null)
   const desenhando = useRef<Traco | null>(null)
+  const camera = useRef<HTMLInputElement>(null)
+  const alvoFoto = useRef<number | null>(null)
+  const [enviandoFoto, setEnviandoFoto] = useState(false)
   const [tracoAtual, setTracoAtual] = useState<Traco | null>(null)
 
   const comMarcacao = !!vistoriaId
@@ -138,12 +143,37 @@ export default function VisorPdf({ projeto, onFechar, vistoriaId, obraId, editav
     }
   }
 
+  // Ao marcar o ponto já abre a câmera para a foto de prova
   function confirmarPonto(texto: string) {
     if (!novo || !texto.trim()) return
-    setPontos(ps => [...ps, { n: proximoNumero, x: novo.x, y: novo.y, descricao: texto.trim(), criadoPor: usuarioAtual(), criadoEm: Date.now() }])
+    const n = proximoNumero
+    setPontos(ps => [...ps, { n, x: novo.x, y: novo.y, descricao: texto.trim(), criadoPor: usuarioAtual(), criadoEm: Date.now(), provas: [] }])
     setAcoes(a => [...a, { tipo: 'ponto' }])
     setAlterado(true)
     setNovo(null)
+    abrirCamera(n)
+  }
+
+  function abrirCamera(n: number) {
+    alvoFoto.current = n
+    camera.current?.click()
+  }
+
+  async function fotosDeProva(e: React.ChangeEvent<HTMLInputElement>) {
+    const arquivos = [...(e.target.files ?? [])]
+    e.target.value = ''
+    const n = alvoFoto.current
+    if (!arquivos.length || n == null) return
+    setEnviandoFoto(true)
+    try {
+      const ids: string[] = []
+      for (const a of arquivos) ids.push(await salvarFoto(a))
+      setPontos(ps => ps.map(p => (p.n === n ? { ...p, provas: [...(p.provas ?? []), ...ids] } : p)))
+      setAlterado(true)
+      setLista(true)
+    } finally {
+      setEnviandoFoto(false)
+    }
   }
 
   function desfazer() {
@@ -267,7 +297,7 @@ export default function VisorPdf({ projeto, onFechar, vistoriaId, obraId, editav
             </svg>
           )}
           {base && pontos.map(p => (
-            <span key={p.n} className="pino" style={{ left: `${(p.x / base.w) * 100}%`, top: `${(p.y / base.h) * 100}%` }} title={p.descricao}>
+            <span key={p.n} className={`pino ${p.resolvidoEm ? 'resolvido' : ''}`} style={{ left: `${(p.x / base.w) * 100}%`, top: `${(p.y / base.h) * 100}%` }} title={p.descricao}>
               {p.n}
             </span>
           ))}
@@ -289,6 +319,9 @@ export default function VisorPdf({ projeto, onFechar, vistoriaId, obraId, editav
         </div>
       )}
 
+      <input ref={camera} type="file" accept="image/*" capture="environment" multiple hidden onChange={fotosDeProva} />
+      {enviandoFoto && <p className="dica">Salvando foto de prova…</p>}
+
       {lista && comMarcacao && (
         <div className="lista-pontos">
           <div className="titulo-linha"><h3>Pontos nesta página</h3><button className="link" onClick={() => setLista(false)}><X size={17} /></button></div>
@@ -296,10 +329,19 @@ export default function VisorPdf({ projeto, onFechar, vistoriaId, obraId, editav
           <ol>
             {pontos.map(p => (
               <li key={p.n}>
-                <span className="pino estatico">{p.n}</span>
-                <span className="desc"><b>{p.descricao}</b><span className="sub">{p.criadoPor} · {dataHora(p.criadoEm)}</span></span>
-                {editavel && obraId && <button className="link" title="Criar pendência" onClick={() => criarPendencia(p)}><ClipboardList size={17} /></button>}
-                {editavel && <button className="link perigo" title="Excluir ponto" onClick={() => excluirPonto(p.n)}><Trash2 size={17} /></button>}
+                <div className="ponto-linha">
+                  <span className={`pino estatico ${p.resolvidoEm ? 'resolvido' : ''}`}>{p.n}</span>
+                  <span className="desc"><b>{p.descricao}</b><span className="sub">{p.criadoPor} · {dataHora(p.criadoEm)}</span></span>
+                  {editavel && <button className="link" title="Foto de prova" onClick={() => abrirCamera(p.n)}><Camera size={17} /></button>}
+                  {editavel && obraId && <button className="link" title="Criar pendência" onClick={() => criarPendencia(p)}><ClipboardList size={17} /></button>}
+                  {editavel && <button className="link perigo" title="Excluir ponto" onClick={() => excluirPonto(p.n)}><Trash2 size={17} /></button>}
+                </div>
+                {(p.provas?.length ?? 0) > 0 && (
+                  <div className="fotos-ponto"><span className="rotulo-foto">Prova</span>{p.provas!.map(f => <Foto key={f} id={f} />)}</div>
+                )}
+                {(p.contraprovas?.length ?? 0) > 0 && (
+                  <div className="fotos-ponto"><span className="rotulo-foto ok">Contraprova</span>{p.contraprovas!.map(f => <Foto key={f} id={f} />)}</div>
+                )}
               </li>
             ))}
           </ol>
@@ -346,7 +388,7 @@ async function gerarImagem(doc: pdfjs.PDFDocumentProxy, pagina: number, base: { 
     const x = pt.x * escala, y = pt.y * escala
     ctx.beginPath()
     ctx.arc(x, y, r, 0, Math.PI * 2)
-    ctx.fillStyle = '#d32f2f'
+    ctx.fillStyle = pt.resolvidoEm ? '#3f7552' : '#d32f2f'
     ctx.fill()
     ctx.lineWidth = r * 0.18
     ctx.strokeStyle = '#fff'

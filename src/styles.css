@@ -296,10 +296,30 @@ fieldset:disabled .item-extras { display: none; }
 .lista-pontos .desc { flex: 1; min-width: 0; }
 .lista-pontos .desc b { display: block; font-size: .88rem; }
 .visor-pdf { position: fixed; }
-.marcacoes-vistoria { display: grid; gap: .75rem; }
-.marcacao { display: grid; grid-template-columns: 110px 1fr; gap: .8rem; align-items: start; }
+.marcacoes-vistoria { display: grid; grid-template-columns: minmax(0, 1fr); gap: .75rem; }
+.marcacao { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: .8rem; align-items: start; }
 .marcacao img { width: 110px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid var(--borda); background: #fff; cursor: pointer; }
 .marcacao ol { margin: .3rem 0 0; padding-left: 0; list-style: none; font-size: .84rem; display: grid; gap: .2rem; }
 .marcacao ol li { display: flex; gap: .4rem; align-items: center; }
 .marcacao .pino { width: 20px; height: 20px; font-size: .65rem; border-width: 1.5px; }
 .badge-marcas { display: inline-block; white-space: nowrap; vertical-align: middle; font-size: .7rem; font-weight: 650; color: #fff; background: #d32f2f; border-radius: 99px; padding: .1rem .45rem; margin-left: .35rem; }
+
+/* Prova e contraprova */
+.pino.resolvido { background: var(--ok); }
+.lista-pontos li { display: block; }
+.ponto-linha { display: flex; align-items: center; gap: .6rem; }
+.ponto-linha .desc { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: .2rem; }
+.fotos-ponto { display: flex; flex-wrap: wrap; gap: .35rem; align-items: center; margin-top: .35rem; }
+.fotos-ponto .miniatura { width: 58px; height: 58px; }
+.lista-pontos .fotos-ponto { padding-left: 2.1rem; }
+.rotulo-foto { font-size: .68rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--nc); }
+.rotulo-foto.ok { color: var(--ok); }
+.lista-pontos .rotulo-foto { width: 100%; }
+.pontos-vistoria { list-style: none; padding: 0; margin: .8rem 0 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: .6rem; }
+.ponto-vistoria { border: 1px solid var(--borda); border-radius: 12px; padding: .7rem .8rem; background: #fcfbf9; }
+.provas { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: .75rem; margin-top: .6rem; padding-left: 2.1rem; }
+@media (max-width: 480px) { .provas { padding-left: 0; } .ponto-vistoria .fotos-ponto .miniatura { width: 52px; height: 52px; } }
+.marcacao > div { min-width: 0; overflow-wrap: anywhere; }
+
+.ponto-linha .selo { white-space: normal; max-width: 100%; }
+.ponto-linha > .link { flex-shrink: 0; }

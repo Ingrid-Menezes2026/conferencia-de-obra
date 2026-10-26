@@ -98,6 +98,11 @@ export interface Ponto {
   descricao: string
   criadoPor: string
   criadoEm: number
+  // Fotos do problema (prova) e da correção (contraprova), ids da tabela fotos
+  provas?: string[]
+  contraprovas?: string[]
+  resolvidoEm?: number
+  resolvidoPor?: string
 }
 
 export interface Traco {
